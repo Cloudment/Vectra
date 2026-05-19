@@ -90,6 +90,7 @@ SET(http_STAT_SRCS
    subrequest.cpp
    recaptcha.cpp
    expression.cpp
+   useacme.cpp
 )
 
 add_library(http STATIC ${http_STAT_SRCS})
