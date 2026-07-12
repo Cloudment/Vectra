@@ -41,7 +41,7 @@ def fatal_error(msg):
     sys.exit(1)
 
 # --- security validation helpers ---
-_PKG_NAME_RE = re.compile(r'\A[A-Za-z0-9 _.\-]{1,64}\Z')
+_PKG_NAME_RE = re.compile(r'\A[A-Za-z0-9 _.\-+]{1,64}\Z')
 _NUMERIC_VAL_RE = re.compile(r'\A-?\d+[KMGT]?\Z', re.IGNORECASE)
 
 def validate_pkg_name(pkg):

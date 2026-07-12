@@ -417,46 +417,6 @@ class CValidation
 			return false;
 		}
 
-		$canonicalPath = $this->canonicalizePathThroughExistingAncestor($path);
-		$canonicalDirectory = $this->canonicalizePathThroughExistingAncestor($directory);
-		if ($canonicalPath === false || $canonicalDirectory === false) {
-			return false;
-		}
-
-		return $this->isSameOrDescendantPath($canonicalPath, $canonicalDirectory);
-	}
-
-	protected function canonicalizePathThroughExistingAncestor($path)
-	{
-		$ancestor = $path;
-
-		while ($ancestor !== '' && !file_exists($ancestor)) {
-			$parent = dirname($ancestor);
-			if ($parent === $ancestor) {
-				break;
-			}
-			$ancestor = $parent;
-		}
-
-		if ($ancestor === '' || !file_exists($ancestor)) {
-			return false;
-		}
-
-		$realAncestor = realpath($ancestor);
-		if ($realAncestor === false) {
-			return false;
-		}
-
-		$tail = substr($path, strlen($ancestor));
-		if ($tail !== '' && substr($tail, 0, 1) != '/') {
-			return false;
-		}
-
-		return PathTool::clean($realAncestor . $tail);
-	}
-
-	protected function isSameOrDescendantPath($path, $directory)
-	{
 		if ($path !== '/') {
 			$path = rtrim($path, '/');
 		}

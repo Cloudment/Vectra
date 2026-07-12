@@ -202,15 +202,21 @@ def lsws_restart():
         pid = int(pid_str)
     except ValueError:
         common.fatal_error("Bad LiteSpeed pid value: %r" % pid_str)
-    # Sanity-check: the pid we're about to SIGUSR1 must actually be lshttpd,
-    # owned by root. Prevents racing into a recycled pid that belongs to a
-    # non-LiteSpeed process (e.g. an unprivileged user's process).
+    # Sanity-check: the pid we're about to SIGUSR1 must actually be the
+    # LiteSpeed server, owned by root. Prevents racing into a recycled pid
+    # that belongs to a non-LiteSpeed process (e.g. an unprivileged user's
+    # process). Match on exe basename prefix, since the actual binary name
+    # varies: OpenLiteSpeed uses 'openlitespeed'; LiteSpeed Enterprise uses
+    # a versioned 'lshttpd.<ver>' (e.g. 'lshttpd.6.3.5'); some builds use
+    # 'litespeed'/'lshttpd'. The 'lshttpd' label in the process comm/args is
+    # not the executable path.
+    lsws_exe_prefixes = ('openlitespeed', 'litespeed', 'lshttpd')
     try:
         exe = os.readlink('/proc/%d/exe' % pid)
         st = os.stat('/proc/%d' % pid)
     except OSError as err:
         common.fatal_error("Cannot verify LiteSpeed pid %d: %s" % (pid, err))
-    if st.st_uid != 0 or 'lshttpd' not in os.path.basename(exe):
+    if st.st_uid != 0 or not os.path.basename(exe).startswith(lsws_exe_prefixes):
         common.fatal_error(
             "Refusing to signal pid %d: exe=%r uid=%d (not a root-owned lshttpd)"
             % (pid, exe, st.st_uid))

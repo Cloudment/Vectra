@@ -41,6 +41,7 @@ def init_pgm():
     parser.add_argument("--tasks", type=str, help="limit number of tasks.  Specify a maximum count of tasks that can be started.")
     parser.add_argument("--size", type=str, help="set redis package size.  Default is not defined (-1).")
     parser.add_argument("--user", type=str, help="the user to request the size for.  Required for the commands usersize and userpkg")
+    parser.add_argument('--prune', action='store_true', help='with validate or validate-all, delete package files that have no users assigned')
     args = parser.parse_args()
     if not args.quiet or args.log != None:
         if args.log != None:
@@ -322,7 +323,7 @@ def write_pkg(pkg, pkg_json):
     
 def revalidate_pkg(pkg, pkg_sizes, users, users_vals, org_pkg, pkg_json, force, args_dict):
     logging.debug("revalidate_pkg %s %d users" % (pkg, len(users)))
-    if len(users) == 0 and args_dict != None and not 'size' in args_dict and int(args_dict['size']) < 0:
+    if len(users) == 0 and args_dict != None and args_dict.get('size') != None and int(args_dict['size']) < 0:
         logging.debug("Delete package entirely: %s" % pkg)
         filename = common.pkg_to_filename(pkg)
         if os.path.exists(filename):
@@ -354,19 +355,26 @@ def revalidate_pkg(pkg, pkg_sizes, users, users_vals, org_pkg, pkg_json, force, 
         pkg_json['uids'] = users
         write_pkg(pkg, pkg_json)
 
-def validate_pkg(pkg, pkg_sizes, users_vals, users):
+def validate_pkg(pkg, pkg_sizes, users_vals, users, prune=False):
     pkg_json = read_pkg(pkg, pkg_sizes)
-    revalidate_pkg(pkg, pkg_sizes, users, users_vals, pkg_json, pkg_json, False, None)
-    
+    # When pruning, hand revalidate_pkg a sentinel args_dict so its empty-package
+    # deletion path fires. Only do this for genuinely userless packages; a package
+    # that still has users must go through normal validation (args_dict=None) so its
+    # cgroup limits are re-applied instead of skipped.
+    args_dict = {'size': '-1'} if prune and len(users) == 0 else None
+    revalidate_pkg(pkg, pkg_sizes, users, users_vals, pkg_json, pkg_json, False, args_dict)
+
 def command_validate(args, users_vals, usersplans, pkg_sizes):
+    # Pruning applies only to the validate commands, never to list/list-all.
+    prune = args.prune and args.command in ('validate', 'validate-all')
     if args.command == 'validate-all' or args.command == 'list-all':
         for pkg in usersplans:
-            validate_pkg(pkg, pkg_sizes, users_vals, usersplans[pkg])
+            validate_pkg(pkg, pkg_sizes, users_vals, usersplans[pkg], prune)
     else:
         for pkg in args.pkg:
             if not pkg in usersplans:
                 common.fatal_error("Specified package: %s not found" % pkg)
-            validate_pkg(pkg, pkg_sizes, users_vals, usersplans[pkg])
+            validate_pkg(pkg, pkg_sizes, users_vals, usersplans[pkg], prune)
 
 def arrInfinite(opt, arr):
     return (not opt in arr) or arr[opt] == None or arr[opt] == '' or arr[opt] == '-1'

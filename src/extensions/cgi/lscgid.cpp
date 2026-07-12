@@ -629,9 +629,6 @@ static int execute_cgi(lscgid_t *pCGI)
     if (setpriority(PRIO_PROCESS, 0, pCGI->m_data.m_priority))
         perror("lscgid: setpriority()");
 
-    if (pCGI->m_stderrPath)
-        fixStderrLogPermission(pCGI);
-
 #ifdef HAS_CLOUD_LINUX
 
 #if defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)

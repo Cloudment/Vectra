@@ -3456,7 +3456,7 @@ void HttpServerImpl::fixConfDirsPermission()
 
     if (needUpdated)
     {
-        ls_snprintf(achBuf, 4096, "chown -R %s:%s %s/conf/; chmod -R 0750 %s/conf/ ",
+        ls_snprintf(achBuf, 4096, "chown -R %s:%s %s/conf/; find %s/conf/ -type d -exec chmod -R 0750 {} +",
                     "lsadm", MainServerConfig::getInstance().getGroup(), pRoot, pRoot);
         system(achBuf);
     }
